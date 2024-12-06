@@ -1,4 +1,7 @@
 # The_Heralds_and_the_Peasants
+A Game by Kc Weaver
+Cs 439 BSU
+
 
 ## The Heralds and the Peasants is...
   - A pygame game program
