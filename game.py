@@ -1,12 +1,13 @@
-
 import pygame
 import sys
-from data.peasant import Peasant 
+from data.scripts.peasant import Peasant
+from data.scripts.lesser_peasant import LesserPeasant
+from data.scripts.herald import Herald
 
 class Game:
     def __init__(self):
         pygame.init()
-        
+
         pygame.display.set_caption('The Heralds and the Peasants')
         self.screen = pygame.display.set_mode((1280, 720))
 
@@ -15,40 +16,175 @@ class Game:
         # Background
         self.background_img = pygame.image.load('data/images/clouds.png')
 
-        # Initialize Peasant object
-        self.peasant = Peasant('data/images/entities/peasant.png', [0, 600])
+        # Peasant
+        self.peasant_start_pos = [0, 600]
+        self.peasant = Peasant('data/images/entities/peasant_1.png', self.peasant_start_pos)
 
-        # Church and collision area
-        self.collision_area = pygame.Rect(700, 500, 300, 50)
+        # Lesser Peasants
+        self.lesser_peasants_array = []
+        self.lesser_peasant_frame_counter = 0
+        self.lesser_peasant_spawn_interval_frames = 300
+        self.selected_peasant_type = 0
+
+        # Heralds
+        self.heralds_array = []
+        self.herald_frame_counter = 0
+        self.herald_spawn_interval_frames = 300
+
+        # Church
+        self.collision_area = pygame.Rect(900, 600, 300, 50)
         self.church_img = pygame.image.load('data/images/entities/Church.png')
+
+        # Church Health Bar
+        self.church_health = 100  # Starting health for the collision area
+
+        # Buttons
+        self.button_1 = pygame.Rect(20, 20, 200, 50)
+        self.button_2 = pygame.Rect(20, 80, 200, 50)
+        self.button_3 = pygame.Rect(20, 140, 200, 50)
 
     def run(self):
         while True:
-            # Background is in back
+            # Background
             self.screen.blit(self.background_img, (0, 0))
 
-            # Collision Area
+            # Buttons
+            self.draw_buttons()
+
+            # Collision Area Health Bar
             img_r = pygame.Rect(self.peasant.peasant_img_pos[0], self.peasant.peasant_img_pos[1], self.peasant.peasant_img.get_width(), self.peasant.peasant_img.get_height())
             if img_r.colliderect(self.collision_area):
-                pygame.draw.rect(self.screen, (0, 100, 255), self.collision_area)
-            else:
-                pygame.draw.rect(self.screen, (0, 50, 155), self.collision_area)
+                # Drain the health of the collision area if the peasant is inside
+                self.church_health -= 0.05
+                if self.church_health <= 0:
+                    self.display_game_over()
+                    break
+            # Draw the church (collision area) and health bar
+            self.draw_collision_area_health()
 
-            # Update peasant position and draw it
+            # Update peasant
             self.peasant.update_position()
             self.peasant.draw(self.screen)
 
-            # Process events
+            # Check collision with heralds
+            if self.peasant.check_collision_with_herald(self.heralds_array):
+                self.display_game_over()
+                break
+
+            # Update lesser peasants
+            for lesser_peasant in self.lesser_peasants_array[:]:
+                lesser_peasant.update_position()
+                for herald in self.heralds_array[:]:
+                    lesser_peasant_rect = pygame.Rect(lesser_peasant.peasant_img_pos[0], lesser_peasant.peasant_img_pos[1], lesser_peasant.peasant_img.get_width(), lesser_peasant.peasant_img.get_height())
+                    herald_rect = pygame.Rect(herald.herald_img_pos[0], herald.herald_img_pos[1], herald.herald_img.get_width(), herald.herald_img.get_height())
+                    if lesser_peasant_rect.colliderect(herald_rect):
+                        damage_to_herald = lesser_peasant.calculate_damage_to_herald(herald)
+                        herald.health -= damage_to_herald
+                        lesser_peasant.health -= 25  # Damage lesser peasant as well
+                        if herald.health <= 0:
+                            self.heralds_array.remove(herald)
+                        if lesser_peasant.health <= 0:
+                            self.lesser_peasants_array.remove(lesser_peasant)
+                else:
+                    lesser_peasant.draw(self.screen)
+            self.lesser_peasant_frame_counter += 1
+
+            # Update heralds
+            for herald in self.heralds_array[:]:
+                herald.update_position()
+                if herald.health <= 0:
+                    self.heralds_array.remove(herald)
+                else:
+                    herald.draw(self.screen)
+            self.herald_frame_counter += 1
+
+            # Spawn lesser peasants
+            if self.lesser_peasant_frame_counter >= self.lesser_peasant_spawn_interval_frames:
+                self.spawn_lesser_peasant()
+                self.lesser_peasant_frame_counter = 0
+
+            # Spawn heralds
+            if self.herald_frame_counter >= self.herald_spawn_interval_frames:
+                self.spawn_herald()
+                self.herald_frame_counter = 0
+
+            # Handle events
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     sys.exit()
-
-                # Handle peasant movement based on key events
+                if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                    self.handle_button_click(event.pos)
                 self.peasant.handle_input(event)
 
             pygame.display.update()
             self.clock.tick(60)
 
-# Run the game
+    def draw_buttons(self):
+        pygame.draw.rect(self.screen, (200, 0, 0), self.button_1)
+        pygame.draw.rect(self.screen, (0, 200, 0), self.button_2)
+        pygame.draw.rect(self.screen, (0, 0, 200), self.button_3)
+
+        font = pygame.font.Font(None, 36)
+        label_1 = font.render("Spear Peasant", True, (255, 255, 255))
+        label_2 = font.render("Shield Peasant", True, (255, 255, 255))
+        label_3 = font.render("Sword Peasant", True, (255, 255, 255))
+
+        self.screen.blit(label_1, (self.button_1.x + 20, self.button_1.y + 10))
+        self.screen.blit(label_2, (self.button_2.x + 20, self.button_2.y + 10))
+        self.screen.blit(label_3, (self.button_3.x + 20, self.button_3.y + 10))
+
+    def handle_button_click(self, pos):
+        if self.button_1.collidepoint(pos):
+            self.selected_peasant_type = 0
+        elif self.button_2.collidepoint(pos):
+            self.selected_peasant_type = 1
+        elif self.button_3.collidepoint(pos):
+            self.selected_peasant_type = 2
+
+    def spawn_lesser_peasant(self):
+        new_peasant = LesserPeasant(self.selected_peasant_type, [0, 600])
+        self.lesser_peasants_array.append(new_peasant)
+
+    def spawn_herald(self):
+        new_herald = Herald(self.screen.get_width(), self.screen.get_height())
+        self.heralds_array.append(new_herald)
+
+    def draw_collision_area_health(self):
+        # Draw the church (collision area)
+        pygame.draw.rect(self.screen, (200, 200, 255), self.collision_area)
+
+        # Draw the health bar
+        health_width = self.collision_area.width
+        health_height = 10
+        health_percentage = self.church_health / 100
+        pygame.draw.rect(self.screen, (255, 0, 0), (self.collision_area.x, self.collision_area.y - 10, health_width, health_height))
+        pygame.draw.rect(self.screen, (0, 255, 0), (self.collision_area.x, self.collision_area.y - 10, health_width * health_percentage, health_height))
+
+    def display_game_over(self):
+        font = pygame.font.Font(None, 100)
+        text = font.render("Game Over!", True, (255, 0, 0))
+        self.screen.blit(text, (300, 300))
+        pygame.display.update()
+
+        waiting = True
+        while waiting:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_r:
+                    self.reset_game()
+                    waiting = False
+
+    def reset_game(self):
+        self.peasant.health = 100
+        self.peasant.peasant_img_pos = self.peasant_start_pos
+        self.lesser_peasants_array.clear()
+        self.heralds_array.clear()
+        self.lesser_peasant_frame_counter = 0
+        self.herald_frame_counter = 0
+        self.church_health = 100  # Reset the collision area health
+        self.run()
+
 Game().run()
