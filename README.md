@@ -13,7 +13,7 @@ Cs 439 BSU
   - *Left Arrow Key* to move your peasant left and *Right Arrow Key* to move your peasant to the right
   - *Click* at the top left to switch between the type of unit being generated
   -  Win the game of rock paper scissors! Spear>Shield>Sword>Spear
-  -  Stab your spear into their base for long enough that the game ends!
+  -  Stab your spear into their base until the game ends!
   -  Good Luck!
 
 ## To Run
