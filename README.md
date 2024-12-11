@@ -1,11 +1,12 @@
 # The_Heralds_and_the_Peasants
-A Game by Kc Weaver
-Cs 439 BSU
+A game by Kc Weaver
+for Cs 439 BSU
 
 
-## The Heralds and the Peasants is...
-  - A pygame game program
-  - Pays homage to an old flash game called Age of War.
+## The Heralds and the Peasants
+  - Made with pygame
+  - A half baked idea about ending the end of the world
+  - Pays homage to an old flash game called [Age of War](https://www.youtube.com/watch?v=aKeczow4iyI).
   - Allows the player to think ahead in a game of rock paper scissors while managing their positioning and game state
   - Made primarily with the help of html for dummies and this https://www.youtube.com/watch?v=2gABYM5M0ww tutorial
 
@@ -17,6 +18,6 @@ Cs 439 BSU
   -  Good Luck!
 
 ## To Run
-  - open a terminal
-  - navigate to the main directory
-  - run *python game.py* in terminal
+  - Download Zip file
+  - Extract files
+  - Run the game.py executable in the head directory
